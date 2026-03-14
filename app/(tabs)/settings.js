@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { COLORS, CURRENCIES, FONTS, RADIUS, SPACING } from '../../constants/theme';
 import useStore from '../../store/useStore';
+import { supabase } from '../../supabase';
 import { exportAsExcel, exportAsPDF } from '../../utils/exportData';
 import { cancelAllReminders, scheduleSpendlyReminders } from '../../utils/notifications';
 
@@ -399,11 +400,20 @@ export default function SettingsScreen() {
         <View style={{ backgroundColor: T.card, borderRadius: RADIUS.xl,
           paddingHorizontal: SPACING.lg, marginBottom: SPACING.xl,
           borderWidth: 1, borderColor: T.border }}>
-          <Row icon="ℹ️" label="App Version" description="Spendly v1.0.0 — Your first app!" />
+          <Row icon="ℹ️" label="App Version" description="Spendly v1.1.0 — Now with cloud sync!" />
+          <Row icon="🚪" label="Sign Out" danger
+            onPress={() => {
+              Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign Out', style: 'destructive', onPress: async () => {
+                  await supabase.auth.signOut();
+                }}
+              ]);
+            }} />
         </View>
 
         <Text style={{ textAlign: 'center', color: T.muted, fontSize: FONTS.xs, marginTop: 8 }}>
-          💰 Spendly v1.0.0
+          💰 Spendly v1.1.0
         </Text>
         <Text style={{ textAlign: 'center', color: T.muted, fontSize: FONTS.xs, marginTop: 4 }}>
           Designed & Developed by

@@ -1,6 +1,4 @@
 // store/useStore.js
-// 🧠 Spendly's brain — all data persists permanently on device
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import {
@@ -9,8 +7,8 @@ import {
   DEFAULT_EXPENSE_CATEGORIES,
   DEFAULT_INCOME_CATEGORIES,
 } from '../constants/theme';
+import { supabase } from '../supabase';
 
-// ── STORAGE HELPERS ───────────────────────────────────────────
 const STORAGE_KEY = 'spendly_data';
 
 const saveToStorage = async (data) => {
@@ -31,13 +29,15 @@ const loadFromStorage = async () => {
   }
 };
 
-// ── STORE ─────────────────────────────────────────────────────
 const useStore = create((set, get) => ({
 
-  // ── APP SETTINGS ──────────────────────────────────────────
+  // ── SETTINGS ──────────────────────────────────────────────
   isDark: false,
   currency: CURRENCIES.find(c => c.code === 'INR'),
-  isLoaded: false, // tracks if data has been loaded from storage
+  isLoaded: false,
+  user: null,
+
+  setUser: (user) => set({ user }),
 
   toggleTheme: () => {
     set(s => ({ isDark: !s.isDark }));
@@ -48,10 +48,6 @@ const useStore = create((set, get) => ({
     set({ currency });
     get().persistAll();
   },
-
-  // ── USER ──────────────────────────────────────────────────
-  user: null,
-  setUser: (user) => set({ user }),
 
   // ── CATEGORIES ────────────────────────────────────────────
   expenseCategories: DEFAULT_EXPENSE_CATEGORIES,
@@ -77,9 +73,20 @@ const useStore = create((set, get) => ({
   // ── ACCOUNTS ──────────────────────────────────────────────
   accounts: DEFAULT_ACCOUNTS.map(a => ({ ...a, balance: 0.00 })),
 
-  addAccount: (account) => {
+  addAccount: async (account) => {
     set(s => ({ accounts: [...s.accounts, account] }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('accounts').upsert({
+        id: account.id,
+        user_id: user.id,
+        name: account.name,
+        icon: account.icon,
+        color: account.color,
+        balance: account.balance,
+      });
+    }
   },
 
   updateAccountBalance: (id, amount) => {
@@ -91,17 +98,28 @@ const useStore = create((set, get) => ({
       )
     }));
     get().persistAll();
+    const { user, accounts } = get();
+    if (user) {
+      const acc = accounts.find(a => a.id === id);
+      if (acc) {
+        supabase.from('accounts').update({ balance: acc.balance }).eq('id', id).eq('user_id', user.id);
+      }
+    }
   },
 
-  deleteAccount: (id) => {
+  deleteAccount: async (id) => {
     set(s => ({ accounts: s.accounts.filter(a => a.id !== id) }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('accounts').delete().eq('id', id).eq('user_id', user.id);
+    }
   },
 
   // ── TRANSACTIONS ──────────────────────────────────────────
   transactions: [],
 
-  addTransaction: (txn) => {
+  addTransaction: async (txn) => {
     const newTxn = {
       ...txn,
       id: Date.now().toString(),
@@ -110,39 +128,46 @@ const useStore = create((set, get) => ({
     };
     set(s => ({ transactions: [newTxn, ...s.transactions] }));
 
-    // Auto-update account balance
-    const { updateAccountBalance } = get();
     if (txn.type === 'expense') {
-      updateAccountBalance(txn.accountId, -newTxn.amount);
+      get().updateAccountBalance(txn.accountId, -newTxn.amount);
     } else if (txn.type === 'income') {
-      updateAccountBalance(txn.accountId, newTxn.amount);
+      get().updateAccountBalance(txn.accountId, newTxn.amount);
     } else if (txn.type === 'transfer') {
-      updateAccountBalance(txn.fromAccountId, -newTxn.amount);
-      updateAccountBalance(txn.toAccountId, newTxn.amount);
+      get().updateAccountBalance(txn.fromAccountId, -newTxn.amount);
+      get().updateAccountBalance(txn.toAccountId, newTxn.amount);
     }
+
     get().persistAll();
+
+    const { user } = get();
+    if (user) {
+      await supabase.from('transactions').upsert({
+        id: newTxn.id,
+        user_id: user.id,
+        type: newTxn.type,
+        amount: newTxn.amount,
+        category_id: newTxn.categoryId,
+        account_id: newTxn.accountId,
+        note: newTxn.note,
+        date: newTxn.date,
+        time: newTxn.time,
+        currency: newTxn.currency,
+      });
+    }
   },
 
-  editTransaction: (id, updates) => {
-    const { transactions, accounts } = get();
+  editTransaction: async (id, updates) => {
+    const { transactions } = get();
     const oldTxn = transactions.find(t => t.id === id);
 
-    // Reverse old transaction's effect on account balance
     if (oldTxn) {
-      if (oldTxn.type === 'expense') {
-        get().updateAccountBalance(oldTxn.accountId, +oldTxn.amount);
-      } else if (oldTxn.type === 'income') {
-        get().updateAccountBalance(oldTxn.accountId, -oldTxn.amount);
-      }
+      if (oldTxn.type === 'expense') get().updateAccountBalance(oldTxn.accountId, +oldTxn.amount);
+      else if (oldTxn.type === 'income') get().updateAccountBalance(oldTxn.accountId, -oldTxn.amount);
     }
 
-    // Apply new transaction's effect
     const newAmount = parseFloat(parseFloat(updates.amount).toFixed(2));
-    if (updates.type === 'expense') {
-      get().updateAccountBalance(updates.accountId, -newAmount);
-    } else if (updates.type === 'income') {
-      get().updateAccountBalance(updates.accountId, +newAmount);
-    }
+    if (updates.type === 'expense') get().updateAccountBalance(updates.accountId, -newAmount);
+    else if (updates.type === 'income') get().updateAccountBalance(updates.accountId, +newAmount);
 
     set(s => ({
       transactions: s.transactions.map(t =>
@@ -150,68 +175,174 @@ const useStore = create((set, get) => ({
       )
     }));
     get().persistAll();
+
+    const { user } = get();
+    if (user) {
+      await supabase.from('transactions').update({
+        type: updates.type,
+        amount: newAmount,
+        category_id: updates.categoryId,
+        account_id: updates.accountId,
+        note: updates.note,
+        date: updates.date,
+        time: updates.time,
+      }).eq('id', id).eq('user_id', user.id);
+    }
   },
 
-  deleteTransaction: (id) => {
+  deleteTransaction: async (id) => {
     set(s => ({ transactions: s.transactions.filter(t => t.id !== id) }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('transactions').delete().eq('id', id).eq('user_id', user.id);
+    }
   },
 
   // ── BUDGETS ───────────────────────────────────────────────
   budgets: [],
 
-  addBudget: (budget) => {
-    set(s => ({ budgets: [...s.budgets, { ...budget, id: Date.now().toString() }] }));
+  addBudget: async (budget) => {
+    const newBudget = { ...budget, id: Date.now().toString() };
+    set(s => ({ budgets: [...s.budgets, newBudget] }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('budgets').upsert({
+        id: newBudget.id,
+        user_id: user.id,
+        category_id: newBudget.categoryId,
+        limit_amount: newBudget.limit,
+      });
+    }
   },
 
-  updateBudget: (id, updates) => {
-    set(s => ({
-      budgets: s.budgets.map(b => b.id === id ? { ...b, ...updates } : b)
-    }));
-    get().persistAll();
-  },
-
-  deleteBudget: (id) => {
+  deleteBudget: async (id) => {
     set(s => ({ budgets: s.budgets.filter(b => b.id !== id) }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('budgets').delete().eq('id', id).eq('user_id', user.id);
+    }
   },
 
   // ── LEND / BORROW ─────────────────────────────────────────
   lendBorrowRecords: [],
 
-  addLendBorrow: (record) => {
-    set(s => ({
-      lendBorrowRecords: [
-        {
-          ...record,
-          id: Date.now().toString(),
-          settled: false,
-          createdAt: new Date().toISOString(),
-        },
-        ...s.lendBorrowRecords,
-      ]
-    }));
+  addLendBorrow: async (record) => {
+    const newRecord = {
+      ...record,
+      id: Date.now().toString(),
+      settled: false,
+      createdAt: new Date().toISOString(),
+    };
+    set(s => ({ lendBorrowRecords: [newRecord, ...s.lendBorrowRecords] }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('lend_borrow').upsert({
+        id: newRecord.id,
+        user_id: user.id,
+        type: newRecord.type,
+        person: newRecord.person,
+        amount: newRecord.amount,
+        note: newRecord.note,
+        date: newRecord.date,
+        due_date: newRecord.dueDate,
+        settled: false,
+      });
+    }
   },
 
-  settleLendBorrow: (id) => {
+  settleLendBorrow: async (id) => {
     set(s => ({
       lendBorrowRecords: s.lendBorrowRecords.map(r =>
-        r.id === id
-          ? { ...r, settled: true, settledAt: new Date().toISOString() }
-          : r
+        r.id === id ? { ...r, settled: true, settledAt: new Date().toISOString() } : r
       )
     }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('lend_borrow').update({
+        settled: true,
+        settled_at: new Date().toISOString(),
+      }).eq('id', id).eq('user_id', user.id);
+    }
   },
 
-  deleteLendBorrow: (id) => {
+  deleteLendBorrow: async (id) => {
     set(s => ({ lendBorrowRecords: s.lendBorrowRecords.filter(r => r.id !== id) }));
     get().persistAll();
+    const { user } = get();
+    if (user) {
+      await supabase.from('lend_borrow').delete().eq('id', id).eq('user_id', user.id);
+    }
   },
 
-  // ── PERSIST ALL DATA TO PHONE STORAGE ─────────────────────
+  // ── SYNC FROM CLOUD ───────────────────────────────────────
+  syncFromCloud: async () => {
+    const { user } = get();
+    if (!user) return;
+
+    try {
+      const [txnRes, accRes, budRes, lbRes] = await Promise.all([
+        supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('accounts').select('*').eq('user_id', user.id),
+        supabase.from('budgets').select('*').eq('user_id', user.id),
+        supabase.from('lend_borrow').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      ]);
+
+      const transactions = (txnRes.data || []).map(t => ({
+        id: t.id,
+        type: t.type,
+        amount: t.amount,
+        categoryId: t.category_id,
+        accountId: t.account_id,
+        note: t.note,
+        date: t.date,
+        time: t.time,
+        currency: t.currency,
+        createdAt: t.created_at,
+      }));
+
+      const accounts = (accRes.data || []).map(a => ({
+        id: a.id,
+        name: a.name,
+        icon: a.icon,
+        color: a.color,
+        balance: a.balance,
+      }));
+
+      const budgets = (budRes.data || []).map(b => ({
+        id: b.id,
+        categoryId: b.category_id,
+        limit: b.limit_amount,
+      }));
+
+      const lendBorrowRecords = (lbRes.data || []).map(l => ({
+        id: l.id,
+        type: l.type,
+        person: l.person,
+        amount: l.amount,
+        note: l.note,
+        date: l.date,
+        dueDate: l.due_date,
+        settled: l.settled,
+        settledAt: l.settled_at,
+        createdAt: l.created_at,
+      }));
+
+      // Only use cloud data if it has records
+      if (transactions.length > 0 || accounts.length > 0) {
+        set({ transactions, accounts, budgets, lendBorrowRecords });
+        get().persistAll();
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+    }
+  },
+
+  // ── PERSIST ALL ───────────────────────────────────────────
   persistAll: () => {
     const state = get();
     saveToStorage({
@@ -226,7 +357,7 @@ const useStore = create((set, get) => ({
     });
   },
 
-  // ── LOAD ALL DATA FROM PHONE STORAGE ──────────────────────
+  // ── LOAD ALL ──────────────────────────────────────────────
   loadAll: async () => {
     const saved = await loadFromStorage();
     if (saved) {
@@ -244,21 +375,20 @@ const useStore = create((set, get) => ({
     } else {
       set({ isLoaded: true });
     }
+
+    // Sync from cloud after loading local data
+    setTimeout(() => get().syncFromCloud(), 1000);
   },
 
   // ── HELPERS ───────────────────────────────────────────────
   getTotalIncome: () => {
     const { transactions } = get();
-    return transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+    return transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
   },
 
   getTotalExpense: () => {
     const { transactions } = get();
-    return transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+    return transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
   },
 
   getFilteredTransactions: (period) => {
@@ -266,18 +396,13 @@ const useStore = create((set, get) => ({
     const now = new Date();
     return transactions.filter(t => {
       const txnDate = new Date(t.date);
-      if (period === 'daily') {
-        return txnDate.toDateString() === now.toDateString();
-      } else if (period === 'weekly') {
+      if (period === 'daily') return txnDate.toDateString() === now.toDateString();
+      if (period === 'weekly') {
         const weekAgo = new Date(now);
         weekAgo.setDate(now.getDate() - 7);
         return txnDate >= weekAgo;
-      } else {
-        return (
-          txnDate.getMonth() === now.getMonth() &&
-          txnDate.getFullYear() === now.getFullYear()
-        );
       }
+      return txnDate.getMonth() === now.getMonth() && txnDate.getFullYear() === now.getFullYear();
     });
   },
 
@@ -285,11 +410,8 @@ const useStore = create((set, get) => ({
     const { transactions } = get();
     const now = new Date();
     return transactions
-      .filter(t =>
-        t.type === 'expense' &&
-        t.categoryId === categoryId &&
-        new Date(t.date).getMonth() === now.getMonth()
-      )
+      .filter(t => t.type === 'expense' && t.categoryId === categoryId &&
+        new Date(t.date).getMonth() === now.getMonth())
       .reduce((sum, t) => sum + t.amount, 0);
   },
 
