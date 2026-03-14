@@ -400,10 +400,6 @@ export default function SettingsScreen() {
           paddingHorizontal: SPACING.lg, marginBottom: SPACING.xl,
           borderWidth: 1, borderColor: T.border }}>
           <Row icon="ℹ️" label="App Version" description="Spendly v1.0.0 — Your first app!" />
-          <Row icon="⭐" label="Rate Spendly"
-            onPress={() => Alert.alert('Thank you! ⭐', 'Rating will be available after publishing to Play Store & App Store.')} />
-          <Row icon="🚪" label="Sign Out" danger
-            onPress={() => Alert.alert('Sign Out', 'Sign out will be available after connecting Supabase login in the next phase.')} />
         </View>
 
         <Text style={{ textAlign: 'center', color: T.muted, fontSize: FONTS.xs, marginTop: 8 }}>

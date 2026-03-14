@@ -2,6 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -29,6 +30,7 @@ export default function AccountsScreen() {
   const budgets = useStore(s => s.budgets);
   const expenseCategories = useStore(s => s.expenseCategories);
   const addAccount = useStore(s => s.addAccount);
+const deleteAccount = useStore(s => s.deleteAccount);
   const addBudget = useStore(s => s.addBudget);
   const deleteBudget = useStore(s => s.deleteBudget);
   const getBudgetSpent = useStore(s => s.getBudgetSpent);
@@ -112,6 +114,23 @@ export default function AccountsScreen() {
               {accounts.map(acc => (
                 <View key={acc.id} style={{ width: '47%', backgroundColor: T.card, borderRadius: RADIUS.xl, padding: SPACING.lg, borderWidth: 1, borderColor: T.border, overflow: 'hidden' }}>
                   <View style={{ position: 'absolute', top: -15, right: -15, width: 60, height: 60, borderRadius: 30, backgroundColor: acc.color + '22' }} />
+                  {/* DELETE BUTTON */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert(
+                        'Delete Account',
+                        `Delete "${acc.name}"? This won't delete its transactions.`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Delete', style: 'destructive', onPress: () => deleteAccount(acc.id) }
+                        ]
+                      );
+                    }}
+                    style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26,
+                      borderRadius: 13, backgroundColor: COLORS.expenseSoft,
+                      alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                    <Ionicons name="trash-outline" size={13} color={COLORS.expense} />
+                  </TouchableOpacity>
                   <Text style={{ fontSize: 28, marginBottom: 8 }}>{acc.icon}</Text>
                   <Text style={{ color: T.subtext, fontSize: FONTS.xs, fontWeight: FONTS.semibold, marginBottom: 4 }}>{acc.name}</Text>
                   <Text style={{ color: acc.balance < 0 ? COLORS.expense : T.text, fontSize: FONTS.lg, fontWeight: FONTS.bold, letterSpacing: -0.5 }}>

@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { COLORS } from '../../constants/theme';
 import useStore from '../../store/useStore';
+import { scheduleSpendlyReminders } from '../../utils/notifications';
 
 export default function TabsLayout() {
   const isDark = useStore(s => s.isDark);
@@ -15,6 +16,7 @@ export default function TabsLayout() {
 
   useEffect(() => {
     loadAll();
+    scheduleSpendlyReminders();
   }, []);
 
   if (!isLoaded) {
