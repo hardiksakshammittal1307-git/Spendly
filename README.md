@@ -1,50 +1,174 @@
-# Welcome to your Expo app 👋
+<div align="center">
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<img src="https://img.shields.io/badge/version-1.0.0-2563EB?style=for-the-badge" />
+<img src="https://img.shields.io/badge/platform-Android-22C55E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/built_with-React_Native-61DAFB?style=for-the-badge&logo=react" />
+<img src="https://img.shields.io/badge/expo-SDK_54-000020?style=for-the-badge&logo=expo" />
 
-## Get started
+# 💰 Spendly
+### Your Smart Personal Finance Manager
 
-1. Install dependencies
+*Track expenses, budgets & loans — your smart money manager!*
 
-   ```bash
-   npm install
-   ```
+**Designed & Developed by [Hardik Mittal](https://github.com/hardiksakshammittal1307-git) ✨**
 
-2. Start the app
+</div>
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 📖 About Spendly
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+**Spendly** is a smart and simple personal finance app designed to help you take full control of your money. Track your daily income and expenses, manage multiple accounts, set monthly budgets, and monitor your spending with beautiful charts and analysis.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Never lose track of who owes you money — Spendly's built-in **Lend & Borrow** feature lets you record loans, set due dates, and get overdue alerts automatically. Stay on top of your finances with smart reminders every 4 hours throughout the day.
 
-## Get a fresh project
+With support for **10 major currencies**, dark mode, PDF and Excel export, and data that saves permanently on your device — Spendly is the only finance app you'll ever need.
 
-When you're ready, run:
+---
 
-```bash
-npm run reset-project
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 💸 **Transactions** | Add, edit & delete income/expenses with date & time picker |
+| 💳 **Accounts** | Manage multiple accounts — Cash, UPI, Savings, Credit & more |
+| 🎯 **Budgets** | Set monthly spending limits with over-budget alerts |
+| 🔄 **Transfers** | Transfer money between your accounts instantly |
+| 🤝 **Lend & Borrow** | Track loans with due dates and overdue detection |
+| 📊 **Analysis** | Beautiful pie charts & bar charts for spending insights |
+| 📄 **Export** | Export your data as PDF or Excel (CSV) |
+| 🌙 **Dark Mode** | Full dark mode support across all screens |
+| 💱 **Multi Currency** | Support for 10 major currencies including ₹ INR |
+| 🔔 **Notifications** | Smart reminders at 8AM, 12PM, 4PM, 8PM & 12AM |
+| 💾 **Offline First** | All data saved permanently on your device |
+| 🎨 **Custom Categories** | Add your own income & expense categories |
+
+---
+
+## 🛠️ Tech Stack
+
+```
+React Native + Expo SDK 54
+├── Expo Router          — File-based navigation
+├── Zustand              — State management
+├── AsyncStorage         — Permanent local data storage
+├── expo-notifications   — Scheduled daily reminders
+├── expo-print           — PDF export
+├── XLSX                 — Excel/CSV export
+├── react-native-gifted-charts — Pie & bar charts
+├── @react-native-community/datetimepicker — Native date/time picker
+└── EAS Build            — APK generation & deployment
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 📱 Screenshots
 
-To learn more about developing your project with Expo, look at the following resources:
+| Home Screen | Analysis | Accounts & Budget |
+|---|---|---|
+| Balance card, transactions, quick actions | Pie chart & bar chart insights | Account cards & budget progress |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## 🚀 Getting Started
 
-Join our community of developers creating universal apps.
+### Prerequisites
+- Node.js LTS
+- Expo Go app on your Android/iOS device
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/hardiksakshammittal1307-git/Spendly.git
+
+# Navigate to project
+cd Spendly
+
+# Install dependencies
+npm install
+
+# Start the development server
+npx expo start --clear
+```
+
+Scan the QR code with **Expo Go** on your phone and the app will load instantly!
+
+---
+
+## 📦 Build APK
+
+```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login to Expo
+eas login
+
+# Build APK
+eas build -p android --profile preview
+```
+
+---
+
+## 📂 Project Structure
+
+```
+Spendly/
+├── app/
+│   ├── _layout.js          ← Root layout & splash screen
+│   └── (tabs)/
+│       ├── index.js         ← Home screen
+│       ├── analysis.js      ← Charts & insights
+│       ├── accounts.js      ← Accounts, budget, transfers
+│       ├── lend.js          ← Lend & borrow tracker
+│       └── settings.js      ← App settings
+├── store/
+│   └── useStore.js          ← Zustand store + AsyncStorage
+├── constants/
+│   └── theme.js             ← Colors, fonts, currencies
+└── utils/
+    ├── notifications.js     ← Scheduled reminders
+    └── exportData.js        ← PDF & Excel export
+```
+
+---
+
+## 🔮 Roadmap — Spendly v2.0
+
+- [ ] 🔐 Login with Google / Email
+- [ ] ☁️ Cloud sync across devices (Supabase)
+- [ ] 📱 Home screen widget
+- [ ] 🏦 Bank statement import
+- [ ] 📈 Investment & savings tracker
+- [ ] 🌍 Multi language support
+- [ ] 🎯 Financial goals & savings targets
+- [ ] 📅 Recurring transactions
+
+---
+
+## 🙏 Feedback & Contributions
+
+I just released **Spendly v1.0.0** and I would love your feedback!
+
+- 🐛 **Found a bug?** Open an [Issue](https://github.com/hardiksakshammittal1307-git/Spendly/issues)
+- 💡 **Have a feature idea?** Open an [Issue](https://github.com/hardiksakshammittal1307-git/Spendly/issues) and label it `enhancement`
+- ⭐ **Like the project?** Give it a star — it means a lot!
+
+Every suggestion goes directly into the next version of Spendly!
+
+---
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+
+**Made with ❤️ by Hardik Mittal**
+
+*If you found this helpful, please consider giving it a ⭐*
+
+</div>
